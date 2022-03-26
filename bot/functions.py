@@ -34,7 +34,7 @@ def replenishment(message, bot, c, conn):
 		c.execute(f"UPDATE users SET gk='{str(GK)}' WHERE id='{message.chat.id}'")
 		conn.commit()
 
-		bot.send_message(message.chat.id, f'❗️❗️❗️Внимание❗️❗️❗️\nВводите сумму, кратную цене прокрута (1 прокрут = {config.sale} DUCO)\n\nЗаявка на пополнение средств\n\nПереведите сумму на логин: {config.admin}\nДобавьте следующий код в примечание к пополнению: {GK}\n\nСтатус: Не подтверждён', reply_markup=replenishment_keyboard())
+		bot.send_message(message.chat.id, f'❗️❗️❗️Внимание❗️❗️❗️\nВводите сумму, кратную цене прокрута (1 прокрут = {config.sale} DUCO)\n\nЗаявка на пополнение средств\n\nПереведите сумму на логин: {config.admin}\nДобавьте следующий код в примечание к пополнению: `{GK}`\n\nСтатус: Не подтверждён', reply_markup=replenishment_keyboard(), parse_mode='Markdown')
 
 def check_replenishment(call, bot, c, conn):
 	time.sleep(3)
@@ -43,7 +43,7 @@ def check_replenishment(call, bot, c, conn):
 	response = r.json()
 	for dicts in response['result']:
 		if dicts['memo'] == user[3] and dicts['recipient'] == config.admin:
-			bot.edit_message_text(f'❗️❗️❗️Внимание❗️❗️❗️\nВводите сумму, кратную цене прокрута (1 прокрут = {config.sale} DUCO)\n\nЗаявка на пополнение средств\n\nПереведите сумму на логин: {config.admin}\nДобавьте следующий код в примечание к пополнению: {user[3]}\n\nСтатус: Подтверждён', call.message.chat.id, call.message.message_id, reply_markup='')
+			bot.edit_message_text(f'❗️❗️❗️Внимание❗️❗️❗️\nВводите сумму, кратную цене прокрута (1 прокрут = {config.sale} DUCO)\n\nЗаявка на пополнение средств\n\nПереведите сумму на логин: {config.admin}\nДобавьте следующий код в примечание к пополнению: `{user[3]}`\n\nСтатус: Подтверждён', call.message.chat.id, call.message.message_id, reply_markup='', parse_mode='Markdown')
 			c.execute(f"UPDATE users SET gk='', balance={user[1]+int(dicts['amount']/config.sale)} WHERE id='{call.message.chat.id}'")
 			conn.commit()
 			bot.send_message(call.message.chat.id, 'Возвращаю в меню', reply_markup=get_spin_keyboard(), parse_mode='Markdown')
