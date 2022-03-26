@@ -111,7 +111,7 @@ def cmd_spin(message, score, bot, c, conn):
 
 	c.execute(f"UPDATE users SET balance={new_score} WHERE id='{message.chat.id}'")
 	conn.commit()
-
+	time.sleep(2)
 	bot.send_message(message.chat.id, 
 		dedent(answer_text_template).format(
 			combo_text=combo_text,
