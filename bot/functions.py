@@ -103,7 +103,7 @@ def cmd_spin(message, score, bot, c, conn):
 
 	score_change, combo_text = get_combo_data(msg.dice.value)
 	if score_change < 0:
-		win_or_lose_text = "К сожалению, вы не выиграли."
+		win_or_lose_text = " К сожалению, вы не выиграли."
 	else:
 		win_or_lose_text = f"Вы выиграли {score_change} очков!"
 
