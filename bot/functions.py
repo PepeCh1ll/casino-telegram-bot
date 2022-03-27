@@ -36,12 +36,16 @@ def replenishment(message, bot, c, conn):
 	elif message.text == 'В меню':
 		bot.send_message(message.chat.id, 'Возвращаю в меню', reply_markup=get_spin_keyboard(), parse_mode='Markdown')
 	else:
+		r = c.execute(f"SELECT gk FROM users WHERE id='{message.chat.id}'").fetchone()
 		key = generate()
-		GK = key.get_key()
-		c.execute(f"UPDATE users SET gk='{str(GK)}' WHERE id='{message.chat.id}'")
-		conn.commit()
+		if r[0] != '':
+			bot.send_message(message.chat.id , 'Вы не подтвердили прошлое пополнение, повторите попытку', reply_markup=get_spin_keyboard())
+		else:
+			GK = key.get_key()
+			c.execute(f"UPDATE users SET gk='{str(GK)}' WHERE id='{message.chat.id}'")
+			conn.commit()
 
-		bot.send_message(message.chat.id, f'❗️❗️❗️Внимание❗️❗️❗️\nВводите сумму, кратную цене прокрута (1 прокрут = {config.sale} DUCO)\nНе забудьте после перевода нажать кнопку проверки оплаты, иначе средства не зачисляться на баланс\n\nЗаявка на пополнение средств\n\nПереведите сумму на логин: {config.admin}\nДобавьте следующий код в примечание к пополнению: `{GK}`\n\nСтатус: Не подтверждён', reply_markup=replenishment_keyboard(), parse_mode='Markdown')
+			bot.send_message(message.chat.id, f'❗️❗️❗️Внимание❗️❗️❗️\nВводите сумму, кратную цене прокрута (1 прокрут = {config.sale} DUCO)\nНе забудьте после перевода нажать кнопку проверки оплаты, иначе средства не зачисляться на баланс\n\nЗаявка на пополнение средств\n\nПереведите сумму на логин: {config.admin}\nДобавьте следующий код в примечание к пополнению:\n`{GK}`\n\nСтатус: Не подтверждён', reply_markup=replenishment_keyboard(), parse_mode='Markdown')
 
 def check_replenishment(call, bot, c, conn):
 	time.sleep(3)
@@ -50,10 +54,9 @@ def check_replenishment(call, bot, c, conn):
 	response = r.json()
 	for dicts in response['result']:
 		if dicts['memo'] == user[3] and dicts['recipient'] == config.admin:
-			bot.edit_message_text(f'❗️❗️❗️Внимание❗️❗️❗️\nВводите сумму, кратную цене прокрута (1 прокрут = {config.sale} DUCO)\n\nЗаявка на пополнение средств\n\nПереведите сумму на логин: {config.admin}\nДобавьте следующий код в примечание к пополнению: `{user[3]}`\n\nСтатус: Подтверждён', call.message.chat.id, call.message.message_id, reply_markup='', parse_mode='Markdown')
+			bot.edit_message_text(f'❗️❗️❗️Внимание❗️❗️❗️\nВводите сумму, кратную цене прокрута (1 прокрут = {config.sale} DUCO)\n\nЗаявка на пополнение средств\n\nСтатус: Подтверждён', call.message.chat.id, call.message.message_id, reply_markup='', parse_mode='Markdown')
 			c.execute(f"UPDATE users SET gk='', balance={user[1]+int(dicts['amount']/config.sale)} WHERE id='{call.message.chat.id}'")
 			conn.commit()
-			bot.send_message(call.message.chat.id, 'Возвращаю в меню', reply_markup=get_spin_keyboard(), parse_mode='Markdown')
 			break
 
 def conclusion(message, bot, c, conn):
@@ -63,7 +66,11 @@ def conclusion(message, bot, c, conn):
 	elif message.text == 'В меню':
 		bot.send_message(message.chat.id, 'Возвращаю в меню', reply_markup=get_spin_keyboard(), parse_mode='Markdown')
 	else:
-		bot.send_message(message.chat.id, f'Введите количество прокрутов на вывод (1 прокрут = {config.sale} DUCO)', reply_markup=ReplyKeyboardRemove())
+		r = c.execute(f"SELECT sk FROM users WHERE id='{message.chat.id}'").fetchone()
+		if r[0] != '':
+			bot.send_message(message.chat.id , 'Вы не подтвердили прошлое пополнение, повторите попытку', reply_markup=get_spin_keyboard())
+		else:
+			bot.send_message(message.chat.id, f'Введите количество прокрутов на вывод (1 прокрут = {config.sale} DUCO)', reply_markup=ReplyKeyboardRemove())
 
 def get_conclusion(message, bot, c, conn):
 	try:
@@ -79,8 +86,12 @@ def get_conclusion(message, bot, c, conn):
 		else:
 			user = c.execute(f"SELECT * FROM users WHERE id='{message.chat.id}'").fetchone()
 			r = requests.get(f'https://server.duinocoin.com/transaction?username={config.admin}&password={config.password}&recipient={user[2]}&amount={summ*config.sale}&memo={GK}')
+			c.execute(f"UPDATE users SET balance={user[1]-int(summ)} WHERE id='{message.chat.id}'")
+			conn.commit()
 			response = r.json()
 			bot.send_message(message.chat.id, f'Заявка на вывод средств средств\n\nСтатус: Не подтверждён', reply_markup=conclusion_keyboard())
+			time.sleep(1)
+			bot.send_message(message.chat.id, f'Возвращаю в меню', reply_markup=get_spin_keyboard())
 	except ValueError:
 		bot.send_message(message.chat.id, 'Вы ввели неверную сумму, повторите попытку', reply_markup=get_spin_keyboard(), parse_mode='Markdown')
 
@@ -92,9 +103,8 @@ def check_conclusion(call, bot, c, conn):
 	for dicts in response['result']:
 		if dicts['memo'] == user[4] and dicts['recipient'] == user[2]:
 			bot.edit_message_text(f'Заявка на вывод средств средств\n\nСтатус: Подтверждён', call.message.chat.id, call.message.message_id, reply_markup='')
-			c.execute(f"UPDATE users SET sk='', balance={user[1]-int(dicts['amount']/config.sale)} WHERE id='{call.message.chat.id}'")
+			c.execute(f"UPDATE users SET sk='' WHERE id='{call.message.chat.id}'")
 			conn.commit()
-			bot.send_message(call.message.chat.id, 'Возвращаю в меню', reply_markup=get_spin_keyboard(), parse_mode='Markdown')
 			break
 
 def cmd_spin(message, score, bot, c, conn):
