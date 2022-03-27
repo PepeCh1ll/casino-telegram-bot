@@ -6,10 +6,17 @@ import time
 from textwrap import dedent
 import config
 from telebot.types import ReplyKeyboardRemove
+import threading
+
+lock = threading.Lock()
 
 def profile(message, bot, c, conn):
-	r = c.execute(f"SELECT * FROM users WHERE id='{message.chat.id}'").fetchone()
-	bot.send_message(message.chat.id, f'Логин кошелька: {r[2]}\nБаланс: {r[1]} прокрутов', reply_markup=profile_keyboard())
+	try:
+		lock.acquire(True)
+		r = c.execute(f"SELECT * FROM users WHERE id='{message.chat.id}'").fetchone()
+		bot.send_message(message.chat.id, f'Логин кошелька: {r[2]}\nБаланс: {r[1]} прокрутов', reply_markup=profile_keyboard())
+	finally:
+		lock.release()
 
 def change(message, bot, c, conn):
 	m = bot.send_message(message.chat.id, 'Введите логин кошелька', reply_markup=back_keyboard())
@@ -34,7 +41,7 @@ def replenishment(message, bot, c, conn):
 		c.execute(f"UPDATE users SET gk='{str(GK)}' WHERE id='{message.chat.id}'")
 		conn.commit()
 
-		bot.send_message(message.chat.id, f'❗️❗️❗️Внимание❗️❗️❗️\nВводите сумму, кратную цене прокрута (1 прокрут = {config.sale} DUCO)\n\nЗаявка на пополнение средств\n\nПереведите сумму на логин: {config.admin}\nДобавьте следующий код в примечание к пополнению: `{GK}`\n\nСтатус: Не подтверждён', reply_markup=replenishment_keyboard(), parse_mode='Markdown')
+		bot.send_message(message.chat.id, f'❗️❗️❗️Внимание❗️❗️❗️\nВводите сумму, кратную цене прокрута (1 прокрут = {config.sale} DUCO)\nНе забудьте после перевода нажать кнопку проверки оплаты, иначе средства не зачисляться на баланс\n\nЗаявка на пополнение средств\n\nПереведите сумму на логин: {config.admin}\nДобавьте следующий код в примечание к пополнению: `{GK}`\n\nСтатус: Не подтверждён', reply_markup=replenishment_keyboard(), parse_mode='Markdown')
 
 def check_replenishment(call, bot, c, conn):
 	time.sleep(3)
@@ -67,7 +74,7 @@ def get_conclusion(message, bot, c, conn):
 		conn.commit()
 		summ = abs(float(message.text))
 		r = c.execute(f"SELECT balance FROM users WHERE id='{message.chat.id}'").fetchone()
-		if r[0] < summ:
+		if r[0] < summ or summ == 0:
 			bot.send_message(message.chat.id, 'Вы ввели неверную сумму, повторите попытку', reply_markup=get_spin_keyboard(), parse_mode='Markdown')
 		else:
 			user = c.execute(f"SELECT * FROM users WHERE id='{message.chat.id}'").fetchone()
