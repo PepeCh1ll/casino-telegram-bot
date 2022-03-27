@@ -83,4 +83,6 @@ def callback_query(call):
 	elif call.data == 'check_c':
 		check_conclusion(call, bot, c, conn)
 
-bot.polling(none_stop=True)
+if __name__ == '__main__':
+	bot.polling(none_stop=True)
+	conn.close()
