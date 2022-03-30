@@ -5,9 +5,9 @@
 Согласно документации на тип Dice в Bot API, слот-машина может принимать значения от 1 до 64 включительно. В файле `dice_check.py` вы найдёте функции для сопоставления значения дайса с тройкой выпавших элементов игрового автомата.
 
 # Технологии
-[pytelegrambotapi](https://pypi.org/project/pyTelegramBotAPI/) — работа с Telegram Bot API
-[sqlite3](https://docs.python.org/3/library/sqlite3.html) - работа с базами данных
-[Duinocoin](https://wallet.duinocoin.com) — задействованная криптовалюта
+*[pytelegrambotapi](https://pypi.org/project/pyTelegramBotAPI/) — работа с Telegram Bot API
+*[sqlite3](https://docs.python.org/3/library/sqlite3.html) - работа с базами данных
+*[Duinocoin](https://wallet.duinocoin.com) — задействованная криптовалюта
 
 # Установка
 1. Установить библиотеки командой `pip install -r requirements.txt`
